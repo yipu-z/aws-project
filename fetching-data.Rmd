@@ -1,0 +1,146 @@
+
+#Install All Packages
+```{r}
+install.packages("ROAuth")
+install.packages("twitteR")
+install.packages("slam")
+install.packages("tm")
+install.packages("SnowballC")
+install.packages("wordcloud")
+install.packages("ggplot2")
+install.packages("topicmodels")
+install.packages("syuzhet")
+
+```
+
+
+##Access to Twitter by My Developer's account
+```{r}
+library(ROAuth)
+
+library(twitteR)
+
+api_key <- "W0IuXVLPfoEqreD27yOCnFyx4"
+
+api_secret <- "pU3joetLlUQczoS2COj5Cj7jPUAd3ZWPkuPFGJ549AgpJiZyHz"
+
+access_token <- "979097738397839361-QFnZAVZgLZ36FO2TP0P88zDIykIPPwF"
+
+access_token_secret <- "5kNjVXyx9W6hh9u3sEHV4pwAyvaVW0pRtO2qOnsgytZJp"
+
+setup_twitter_oauth(api_key, api_secret, access_token, access_token_secret)
+```
+
+
+##Fetch Data from Twitter by Keyword "Trade"
+```{r}
+Start_day <- as.character(Sys.Date() - 7)
+
+End_day <- as.character(Sys.Date())
+
+TL <- searchTwitter("trade", lang = "en", n=10000, since= Start_day, until= End_day)
+
+TL <- do.call("rbind", lapply(TL, as.data.frame))
+
+View(TL)
+
+library(dplyr)
+
+df1 <- select(TL, text, screenName, favoriteCount, retweetCount) 
+
+colnames(df1) <- c("Tweet", "User", "Like","Forward")
+```
+
+
+##Visualization 1 - Wordcloud
+```{r}
+library(RCurl)
+library(tm)
+library(wordcloud)
+library(SnowballC)
+
+df2 <- select(df1, Tweet)
+
+df2$Tweet <- gsub("<.*?>", "", df1$Tweet)
+df2$Tweet <- gsub ("nbsp","", df1$Tweet)
+df2$Tweet <- gsub ("nbspnbspnbsp","",df1$Tweet)
+
+
+#Convert the data frame to the corpus format that the tm package uses
+corpus <- Corpus(VectorSource(df2$Tweet))
+ 
+#Remove spaces
+corpus <- tm_map(corpus, stripWhitespace)
+ 
+#Convert to lower case
+corpus <- tm_map(corpus, tolower)
+ 
+#Remove pre-defined stop words ('the', 'a', etc)
+corpus <- tm_map(corpus, removeWords, stopwords('english'))
+ 
+#Convert words to stems ("education" = "edu") for analysis
+corpus <- tm_map(corpus, stemDocument)
+ 
+#Remove numbers
+corpus <- tm_map(corpus, removeNumbers)
+ 
+#remove punctuation
+corpus <- tm_map(corpus, removePunctuation)
+
+#Convert to plain text for mapping by wordcloud package
+corpus <- tm_map(corpus, PlainTextDocument, lazy = TRUE)
+
+corpus <- Corpus(VectorSource(corpus))
+#Convert corpus to a term document matrix - so each word can be analyzed individuallly
+tdm.corpus <- TermDocumentMatrix(corpus, 
+                                 control=list(removePunctuation = TRUE,
+                                 stopwords = TRUE))
+                      
+#tdm.corpus <- TermDocumentMatrix(corpus)
+
+col = brewer.pal(8, "Dark2")
+
+#wordcloud(corpus, , , rot.per = 0.25, random.color = T, max.word = 50, random.order = T, colors = col)
+
+wordcloud(corpus, random.order = F, min.freq = 30, max.word = 300, scale = c(4, 0.5),random.color = T, colors = col)
+
+```
+
+
+##Visualization 2 - Sentiment Score Based on Tweets
+```{r}
+library(syuzhet)
+library(ggplot2)
+
+#graphic code
+#emotions <- get_nrc_sentiment(corpus$content)
+#barplot (colSums(emotions), cex.names = 0.7, 
+         #col = rainbow(10), main = "Sentiment Scores for Tweets")
+
+
+#ggplot code
+mysentiment <- get_nrc_sentiment(corpus$content)
+
+SentimentScores <- data.frame(colSums(mysentiment[,]))
+
+names(SentimentScores) <- "Score"
+
+SentimentScores <- cbind ("sentiment" = rownames(SentimentScores), SentimentScores)
+
+rownames(SentimentScores) <- NULL
+  
+ggplot(data = SentimentScores, aes(x = sentiment, y = Score)) +
+  geom_bar(aes(fill = sentiment), stat = "identity") +
+  theme (legend.position = "none") +
+  xlab("Sentiment") + ylab ("Score") +
+  ggtitle("Total Sentiment Score Based on Tweets") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+##Visualization 3 - Social Network Analysis
+```{r}
+
+
+```
