@@ -7,9 +7,9 @@ install.packages("slam")
 install.packages("tm")
 install.packages("SnowballC")
 install.packages("wordcloud")
-install.packages("ggplot2")
 install.packages("topicmodels")
 install.packages("syuzhet")
+install.packages("tidyverse")
 
 ```
 
@@ -19,16 +19,16 @@ install.packages("syuzhet")
 library(ROAuth)
 
 library(twitteR)
+api_key <- "C4xwHq2EdZ5GL6LaNA6norgUd"
 
-api_key <- "W0IuXVLPfoEqreD27yOCnFyx4"
+api_secret <- "1UJ4HDznWwTexLmzfu87GyQ01I41D9qugg9pJTwcKUubyZOpvp"
 
-api_secret <- "pU3joetLlUQczoS2COj5Cj7jPUAd3ZWPkuPFGJ549AgpJiZyHz"
+access_token <- "2497530812-8KAYKTo99IuY3bxNPvhARncRr8Eo2GL17GNoeaW"
 
-access_token <- "979097738397839361-QFnZAVZgLZ36FO2TP0P88zDIykIPPwF"
-
-access_token_secret <- "5kNjVXyx9W6hh9u3sEHV4pwAyvaVW0pRtO2qOnsgytZJp"
+access_token_secret <- "MXsEF7690Jg1u5S2aN7yLNQwFZKO7CcvizTMZcKBkGmya"
 
 setup_twitter_oauth(api_key, api_secret, access_token, access_token_secret)
+
 ```
 
 
@@ -38,11 +38,13 @@ Start_day <- as.character(Sys.Date() - 7)
 
 End_day <- as.character(Sys.Date())
 
-TL <- searchTwitter("trade", lang = "en", n=10000, since= Start_day, until= End_day)
+TL <- searchTwitter("elonmusk", lang = "en", n=1000, since= Start_day, until= End_day)
 
 TL <- do.call("rbind", lapply(TL, as.data.frame))
 
 View(TL)
+
+write.csv(TL,"elonmusk_tweets.csv")
 
 library(dplyr)
 
@@ -110,7 +112,7 @@ wordcloud(corpus, random.order = F, min.freq = 30, max.word = 300, scale = c(4, 
 ##Visualization 2 - Sentiment Score Based on Tweets
 ```{r}
 library(syuzhet)
-library(ggplot2)
+library(tidyverse)
 
 #graphic code
 #emotions <- get_nrc_sentiment(corpus$content)
@@ -141,6 +143,7 @@ ggplot(data = SentimentScores, aes(x = sentiment, y = Score)) +
 
 ##Visualization 3 - Social Network Analysis
 ```{r}
+
 
 
 ```
