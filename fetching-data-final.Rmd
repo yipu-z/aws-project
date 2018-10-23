@@ -32,7 +32,7 @@ setup_twitter_oauth(api_key, api_secret, access_token, access_token_secret)
 ```
 
 
-##Fetch Data from Twitter by Keyword "Trade"
+##Fetch Data from Twitter by Keyword "From: Amplify" and "@Amplify"
 ```{r}
 Start_day <- as.character(Sys.Date() - 7)
 
@@ -45,8 +45,8 @@ TL2 <- searchTwitter("from:amplify", lang = "en", n=1000, since= Start_day, unti
 TL2 <- do.call("rbind", lapply(TL2, as.data.frame))
 
 
-write.csv(TL1,"amplify_@_tweets.csv")
-write.csv(TL2,"amplify_from_tweets.csv")
+write.csv(TL1,"amplify_@_tweets_10_22.csv")
+write.csv(TL2,"amplify_from_tweets_10_22.csv")
 
 library(dplyr)
 
@@ -58,7 +58,7 @@ colnames(df2) <- c("Tweet", "User", "Like","Forward")
 ```
 
 
-##Visualization 1 - Wordcloud
+##Visualization 1 - Sentiment Score Based on Tweets @Amplify
 ```{r}
 library(RCurl)
 library(tm)
@@ -66,7 +66,6 @@ library(wordcloud)
 library(SnowballC)
 
 DF1 <- select(df1, Tweet)
-DF1 <- DF1[ -c(60, 63, 68,77,86), ]
 
 DF1$Tweet <- gsub("<.*?>", "", df1$Tweet)
 DF1$Tweet <- gsub ("nbsp","", df1$Tweet)
@@ -103,19 +102,6 @@ tdm.corpus <- TermDocumentMatrix(corpus,
                                  control=list(removePunctuation = TRUE,
                                  stopwords = TRUE))
                       
-#tdm.corpus <- TermDocumentMatrix(corpus)
-
-col = brewer.pal(8, "Dark2")
-
-wordcloud(corpus, , , rot.per = 0.25, random.color = T, min.freq = 30,max.word = 500, random.order = T, colors = col)
-
-wordcloud(corpus, random.order = F, min.freq = 5, max.word = 50, scale = c(4, 0.5),random.color = T, colors = col)
-
-```
-
-
-##Visualization 2 - Sentiment Score Based on Tweets
-```{r}
 library(syuzhet)
 library(tidyverse)
 
@@ -140,87 +126,43 @@ ggplot(data = SentimentScores, aes(x = sentiment, y = Score)) +
   geom_bar(aes(fill = sentiment), stat = "identity") +
   theme (legend.position = "none") +
   xlab("Sentiment") + ylab ("Score") +
-  ggtitle("Total Sentiment Score Based on Tweets") +
+  ggtitle("Total Sentiment Score Based on Tweets @Amplify") +
   theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
 
-##Visualization 3 - Social Network Analysis
+##Get all Paticipants and Followers
 ```{r}
-library(tidyverse)
 
 #active_participants
 participants <- lookupUsers(df1$User)
 participants_df <- twListToDF(participants) %>%
   rownames_to_column()
 
-
 #followers
 user <- getUser("amplify")
 followers <- user$getFollowers()
 followers_df <- twListToDF(followers) %>%
   rownames_to_column()
-```
-```{r}
-top_participants <- participants_df %>%
-  mutate(date = as.Date(created, format = "%Y-%m-%d"),
-         today = as.Date("2018-10-19", format = "%Y-%m-%d"),
-         days = as.numeric(today - date),
-         statusesCount_pDay = statusesCount / days) %>%
-  select(screenName, followersCount, statusesCount_pDay) %>%
-  arrange(desc(followersCount)) %>%
-  .[1:30, ]
 
-top_tweet <- participants_df %>%
-  mutate(date = as.Date(created, format = "%Y-%m-%d"),
-         today = as.Date("2018-10-19", format = "%Y-%m-%d"),
-         days = as.numeric(today - date),
-         statusesCount_pDay = statusesCount / days) %>%
-  select(screenName, followersCount, statusesCount_pDay) %>%
-  arrange(desc(statusesCount_pDay)) %>%
-  .[1:30, ]
-
-top_fol_tweet <- rbind(top_participants, top_tweet) %>%
-  unique()
-
-
-top_followers <- followers_df %>%
-  mutate(date = as.Date(created, format = "%Y-%m-%d"),
-         today = as.Date("2018-10-19", format = "%Y-%m-%d"),
-         days = as.numeric(today - date),
-         statusesCount_pDay = statusesCount / days) %>%
-  select(screenName, followersCount, statusesCount_pDay) %>%
-  arrange(desc(followersCount)) %>%
-  .[1:100, ]
-
-top_tweet_followers <- followers_df %>%
-  mutate(date = as.Date(created, format = "%Y-%m-%d"),
-         today = as.Date("2018-10-19", format = "%Y-%m-%d"),
-         days = as.numeric(today - date),
-         statusesCount_pDay = statusesCount / days) %>%
-  select(screenName, followersCount, statusesCount_pDay) %>%
-  arrange(desc(statusesCount_pDay)) %>%
-  .[1:30, ]
-
-top_fol_tweet2 <- rbind(top_followers, top_tweet_followers) %>%
-  unique()
-
-VIP <-  rbind(top_fol_tweet, top_fol_tweet2) %>%
-  unique() %>% arrange(desc(followersCount)) 
 
 ```
 
+##Visualization 2 -   Mapping out Distribution of Participants and Followers 
 ```{r}
-#location
-follower_location <- data.frame(followers_df$location)
-hist(follower_location)
+follower_locations <- data.frame(followers_df$location)
+
+participant_locations <- data.frame(participants_df$location)
+
+# need to figure out how to plot the dots on a map
 
 ```
 
-
+##Visualization 3 - Learn More about the Audience --> World Cloud on Profile Descriptions
 ```{r}
-#follower description
+
+#followers' profile descriptions
 
 DF2 <- select(followers_df, description)
 
@@ -236,7 +178,7 @@ corpus <- Corpus(VectorSource(DF2$Tweet))
 corpus <- tm_map(corpus, stripWhitespace)
  
 #Convert to lower case
-#corpus <- tm_map(corpus, tolower)
+corpus <- tm_map(corpus, tolower)
  
 #Remove pre-defined stop words ('the', 'a', etc)
 corpus <- tm_map(corpus, removeWords, stopwords('english'))
@@ -269,23 +211,23 @@ wordcloud(corpus, random.order = F, min.freq = 200, max.word = 50, scale = c(4, 
 
 ```
 ```{r}
-#follower description
+#participants' profile descriptions
 
-DF3 <- select(followers_df, description)
+DF3 <- select(participants_df, description)
 
-DF2$Tweet <- gsub("<.*?>", "", followers_df$description)
-DF2$Tweet <- gsub ("nbsp","", followers_df$description)
-DF2$Tweet <- gsub ("nbspnbspnbsp","",followers_df$description)
+DF3$Tweet <- gsub("<.*?>", "", participants_df$description)
+DF3$Tweet <- gsub ("nbsp","", participants_df$description)
+DF3$Tweet <- gsub ("nbspnbspnbsp","",participants_df$description)
 
 
 #Convert the data frame to the corpus format that the tm package uses
-corpus <- Corpus(VectorSource(DF2$Tweet))
+corpus <- Corpus(VectorSource(DF3$Tweet))
  
 #Remove spaces
 corpus <- tm_map(corpus, stripWhitespace)
  
 #Convert to lower case
-#corpus <- tm_map(corpus, tolower)
+corpus <- tm_map(corpus, tolower)
  
 #Remove pre-defined stop words ('the', 'a', etc)
 corpus <- tm_map(corpus, removeWords, stopwords('english'))
@@ -317,4 +259,56 @@ col = brewer.pal(8, "Dark2")
 wordcloud(corpus, random.order = F, min.freq = 200, max.word = 50, scale = c(4, 0.5),random.color = T, colors = col)
 
 ```
+##Visualization 4 - Identify a List of VIP Influencers from Paticipants and Followers
+```{r}
 
+#identify top 30 participants who have the most followers
+famous_participants <- participants_df %>%
+  mutate(date = as.Date(created, format = "%Y-%m-%d"),
+         today = as.Date("2018-10-22", format = "%Y-%m-%d"),
+         days = as.numeric(today - date),
+         statusesCount_pDay = statusesCount / days) %>%
+  select(screenName, followersCount, statusesCount_pDay) %>%
+  arrange(desc(followersCount)) %>%
+  .[1:30, ]
+
+#identify top 30 participants who tweet frequently
+frequent_tweet_participants <- participants_df %>%
+  mutate(date = as.Date(created, format = "%Y-%m-%d"),
+         today = as.Date("2018-10-22", format = "%Y-%m-%d"),
+         days = as.numeric(today - date),
+         statusesCount_pDay = statusesCount / days) %>%
+  select(screenName, followersCount, statusesCount_pDay) %>%
+  arrange(desc(statusesCount_pDay)) %>%
+  .[1:30, ]
+
+VIP_participants <- rbind(famous_participants, frequent_tweet_participants) %>%
+  unique()
+
+#identify top 100 participants who have the most followers
+famous_followers <- followers_df %>%
+  mutate(date = as.Date(created, format = "%Y-%m-%d"),
+         today = as.Date("2018-10-22", format = "%Y-%m-%d"),
+         days = as.numeric(today - date),
+         statusesCount_pDay = statusesCount / days) %>%
+  select(screenName, followersCount, statusesCount_pDay) %>%
+  arrange(desc(followersCount)) %>%
+  .[1:100, ]
+
+#identify top 100 participants who tweet frequently
+frequent_tweet_followers <- followers_df %>%
+  mutate(date = as.Date(created, format = "%Y-%m-%d"),
+         today = as.Date("2018-10-22", format = "%Y-%m-%d"),
+         days = as.numeric(today - date),
+         statusesCount_pDay = statusesCount / days) %>%
+  select(screenName, followersCount, statusesCount_pDay) %>%
+  arrange(desc(statusesCount_pDay)) %>%
+  .[1:100, ]
+
+VIP_followers <- rbind(famous_followers, frequent_tweet_followers) %>%
+  unique()
+
+VIP_total <-  rbind(VIP_participants, VIP_followers) %>%
+  unique() %>% arrange(desc(followersCount)) 
+
+```
