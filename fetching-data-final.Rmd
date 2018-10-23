@@ -38,10 +38,10 @@ Start_day <- as.character(Sys.Date() - 7)
 
 End_day <- as.character(Sys.Date())
 
-TL1 <- searchTwitter("@amplify", lang = "en", n=1000, since= Start_day, until= End_day)
+TL1 <- searchTwitter("@amplify", lang = "en", n=500, since= Start_day, until= End_day)
 TL1 <- do.call("rbind", lapply(TL1, as.data.frame))
 
-TL2 <- searchTwitter("from:amplify", lang = "en", n=1000, since= Start_day, until= End_day)
+TL2 <- searchTwitter("from:amplify", lang = "en", n=500, since= Start_day, until= End_day)
 TL2 <- do.call("rbind", lapply(TL2, as.data.frame))
 
 
@@ -73,32 +73,32 @@ DF1$Tweet <- gsub ("nbspnbspnbsp","",df1$Tweet)
 
 
 #Convert the data frame to the corpus format that the tm package uses
-corpus <- Corpus(VectorSource(DF1$Tweet))
+corpus1 <- Corpus(VectorSource(DF1$Tweet))
  
 #Remove spaces
-corpus <- tm_map(corpus, stripWhitespace)
+corpus1 <- tm_map(corpus1, stripWhitespace)
  
 #Convert to lower case
-corpus <- tm_map(corpus, tolower)
+#corpus <- tm_map(corpus, tolower)
  
 #Remove pre-defined stop words ('the', 'a', etc)
-corpus <- tm_map(corpus, removeWords, stopwords('english'))
+corpus1 <- tm_map(corpus1, removeWords, stopwords('english'))
  
 #Convert words to stems ("education" = "edu") for analysis
-corpus <- tm_map(corpus, stemDocument)
+corpus1 <- tm_map(corpus1, stemDocument)
  
 #Remove numbers
-corpus <- tm_map(corpus, removeNumbers)
+corpus1 <- tm_map(corpus1, removeNumbers)
  
 #remove punctuation
-corpus <- tm_map(corpus, removePunctuation)
+corpus1 <- tm_map(corpus1, removePunctuation)
 
 #Convert to plain text for mapping by wordcloud package
-corpus <- tm_map(corpus, PlainTextDocument, lazy = TRUE)
+corpus1 <- tm_map(corpus1, PlainTextDocument, lazy = TRUE)
 
-corpus <- Corpus(VectorSource(corpus))
+corpus1 <- Corpus(VectorSource(corpus1))
 #Convert corpus to a term document matrix - so each word can be analyzed individuallly
-tdm.corpus <- TermDocumentMatrix(corpus, 
+tdm.corpus1 <- TermDocumentMatrix(corpus1, 
                                  control=list(removePunctuation = TRUE,
                                  stopwords = TRUE))
                       
@@ -112,7 +112,7 @@ library(tidyverse)
 
 
 #ggplot code
-mysentiment <- get_nrc_sentiment(corpus$content)
+mysentiment <- get_nrc_sentiment(corpus1$content)
 
 SentimentScores <- data.frame(colSums(mysentiment[,]))
 
@@ -151,11 +151,110 @@ followers_df <- twListToDF(followers) %>%
 
 ##Visualization 2 -   Mapping out Distribution of Participants and Followers 
 ```{r}
-follower_locations <- data.frame(followers_df$location)
+follower_locations <- select(followers_df,location)
+follower_locations <- filter(follower_locations,location!="")
 
-participant_locations <- data.frame(participants_df$location)
+DF_fol_loc <- select(follower_locations, location)
 
-# need to figure out how to plot the dots on a map
+DF_fol_loc$Location <- gsub("<.*?>", "", follower_locations$location)
+DF_fol_loc$Location <- gsub ("nbsp","", follower_locations$location)
+DF_fol_loc$Location <- gsub ("nbspnbspnbsp","",follower_locations$location)
+
+
+#Convert the data frame to the corpus format that the tm package uses
+corpus2 <- Corpus(VectorSource(DF_fol_loc$Location))
+ 
+#Remove spaces
+corpus2 <- tm_map(corpus2, stripWhitespace)
+ 
+#Convert to lower case
+#corpus2 <- tm_map(corpus2, tolower)
+ 
+#Remove pre-defined stop words ('the', 'a', etc)
+corpus2 <- tm_map(corpus2, removeWords, stopwords('english'))
+ 
+#Convert words to stems ("education" = "edu") for analysis
+corpus2 <- tm_map(corpus2, stemDocument)
+ 
+#Remove numbers
+corpus2 <- tm_map(corpus2, removeNumbers)
+ 
+#remove punctuation
+corpus2 <- tm_map(corpus2, removePunctuation)
+
+#Convert to plain text for mapping by wordcloud package
+corpus2 <- tm_map(corpus2, PlainTextDocument, lazy = TRUE)
+
+corpus2 <- Corpus(VectorSource(corpus2))
+#Convert corpus to a term document matrix - so each word can be analyzed individuallly
+tdm.corpus2 <- TermDocumentMatrix(corpus2, 
+                                 control=list(removePunctuation = TRUE,
+                                 stopwords = TRUE))
+
+
+col = brewer.pal(8, "Dark2")
+
+
+wordcloud(corpus2, random.order = F, min.freq = 5, max.word = 50, scale = c(4, 0.5),random.color = T, colors = col)
+
+```
+
+```{r}
+# participant location histgram
+participant_locations <- select(participants_df,location)
+participant_locations <- filter(participant_locations,location!="")
+cities <- gsub(",.*$", "", participant_locations$location)
+cities <- data.frame(cities)
+cities <- cities[-c(5,6,7,9,17,24,31,58,71),]
+cities <- data.frame(cities)
+cities$count <- 1
+colnames(cities) <- c("city_name","count")
+cities_count<- cities %>% group_by(city_name) %>% summarise(count= sum(count))
+
+# participant location word cloud
+DF_par_loc <- select(participant_locations, location)
+
+DF_par_loc$Location <- gsub("<.*?>", "", participant_locations$location)
+DF_par_loc$Location <- gsub ("nbsp","", participant_locations$location)
+DF_par_loc$Location <- gsub ("nbspnbspnbsp","",participant_locations$location)
+
+
+#Convert the data frame to the corpus format that the tm package uses
+corpus3 <- Corpus(VectorSource(DF_par_loc$Location))
+ 
+#Remove spaces
+corpus3 <- tm_map(corpus3, stripWhitespace)
+ 
+#Convert to lower case
+corpus3 <- tm_map(corpus3, tolower)
+ 
+#Remove pre-defined stop words ('the', 'a', etc)
+corpus3 <- tm_map(corpus3, removeWords, stopwords('english'))
+ 
+#Convert words to stems ("education" = "edu") for analysis
+corpus3 <- tm_map(corpus3, stemDocument)
+ 
+#Remove numbers
+corpus3 <- tm_map(corpus3, removeNumbers)
+ 
+#remove punctuation
+corpus3 <- tm_map(corpus3, removePunctuation)
+
+#Convert to plain text for mapping by wordcloud package
+corpus3 <- tm_map(corpus3, PlainTextDocument, lazy = TRUE)
+
+corpus3 <- Corpus(VectorSource(corpus3))
+#Convert corpus to a term document matrix - so each word can be analyzed individuallly
+tdm.corpus3 <- TermDocumentMatrix(corpus3, 
+                                 control=list(removePunctuation = TRUE,
+                                 stopwords = TRUE))
+
+
+col = brewer.pal(8, "Dark2")
+
+
+wordcloud(corpus3, random.order = F, min.freq = 2, max.word = 10, scale = c(4, 0.5),random.color = T, colors = col)
+
 
 ```
 
@@ -172,33 +271,33 @@ DF2$Tweet <- gsub ("nbspnbspnbsp","",followers_df$description)
 
 
 #Convert the data frame to the corpus format that the tm package uses
-corpus <- Corpus(VectorSource(DF2$Tweet))
+corpus4 <- Corpus(VectorSource(DF2$Tweet))
  
 #Remove spaces
-corpus <- tm_map(corpus, stripWhitespace)
+corpus4 <- tm_map(corpus4, stripWhitespace)
  
 #Convert to lower case
-corpus <- tm_map(corpus, tolower)
+#corpus <- tm_map(corpus, tolower)
  
 #Remove pre-defined stop words ('the', 'a', etc)
-corpus <- tm_map(corpus, removeWords, stopwords('english'))
+corpus4 <- tm_map(corpus4, removeWords, stopwords('english'))
  
 #Convert words to stems ("education" = "edu") for analysis
-corpus <- tm_map(corpus, stemDocument)
+corpus4 <- tm_map(corpus4, stemDocument)
 
  
 #Remove numbers
-corpus <- tm_map(corpus, removeNumbers)
+corpus4 <- tm_map(corpus4, removeNumbers)
  
 #remove punctuation
-corpus <- tm_map(corpus, removePunctuation)
+corpus4 <- tm_map(corpus4, removePunctuation)
 
 #Convert to plain text for mapping by wordcloud package
-corpus <- tm_map(corpus, PlainTextDocument, lazy = TRUE)
+corpus4 <- tm_map(corpus4, PlainTextDocument, lazy = TRUE)
 
-corpus <- Corpus(VectorSource(corpus))
+corpus4 <- Corpus(VectorSource(corpus4))
 #Convert corpus to a term document matrix - so each word can be analyzed individuallly
-tdm.corpus <- TermDocumentMatrix(corpus, 
+tdm.corpus4 <- TermDocumentMatrix(corpus4, 
                                  control=list(removePunctuation = TRUE,
                                  stopwords = TRUE))
                       
@@ -207,7 +306,7 @@ tdm.corpus <- TermDocumentMatrix(corpus,
 col = brewer.pal(8, "Dark2")
 
 
-wordcloud(corpus, random.order = F, min.freq = 200, max.word = 50, scale = c(4, 0.5),random.color = T, colors = col)
+wordcloud(corpus4, random.order = F, min.freq = 200, max.word = 50, scale = c(4, 0.5),random.color = T, colors = col)
 
 ```
 ```{r}
@@ -221,33 +320,33 @@ DF3$Tweet <- gsub ("nbspnbspnbsp","",participants_df$description)
 
 
 #Convert the data frame to the corpus format that the tm package uses
-corpus <- Corpus(VectorSource(DF3$Tweet))
+corpus5 <- Corpus(VectorSource(DF3$Tweet))
  
 #Remove spaces
-corpus <- tm_map(corpus, stripWhitespace)
+corpus5 <- tm_map(corpus5, stripWhitespace)
  
 #Convert to lower case
-corpus <- tm_map(corpus, tolower)
+#corpus <- tm_map(corpus, tolower)
  
 #Remove pre-defined stop words ('the', 'a', etc)
-corpus <- tm_map(corpus, removeWords, stopwords('english'))
+corpus5 <- tm_map(corpus5, removeWords, stopwords('english'))
  
 #Convert words to stems ("education" = "edu") for analysis
-corpus <- tm_map(corpus, stemDocument)
+corpus5 <- tm_map(corpus5, stemDocument)
 
  
 #Remove numbers
-corpus <- tm_map(corpus, removeNumbers)
+corpus5 <- tm_map(corpus5, removeNumbers)
  
 #remove punctuation
-corpus <- tm_map(corpus, removePunctuation)
+corpus5 <- tm_map(corpus5, removePunctuation)
 
 #Convert to plain text for mapping by wordcloud package
-corpus <- tm_map(corpus, PlainTextDocument, lazy = TRUE)
+corpus5 <- tm_map(corpus5, PlainTextDocument, lazy = TRUE)
 
-corpus <- Corpus(VectorSource(corpus))
+corpus5 <- Corpus(VectorSource(corpus5))
 #Convert corpus to a term document matrix - so each word can be analyzed individuallly
-tdm.corpus <- TermDocumentMatrix(corpus, 
+tdm.corpus5 <- TermDocumentMatrix(corpus5, 
                                  control=list(removePunctuation = TRUE,
                                  stopwords = TRUE))
                       
@@ -256,9 +355,10 @@ tdm.corpus <- TermDocumentMatrix(corpus,
 col = brewer.pal(8, "Dark2")
 
 
-wordcloud(corpus, random.order = F, min.freq = 200, max.word = 50, scale = c(4, 0.5),random.color = T, colors = col)
+wordcloud(corpus5, random.order = F, min.freq = 200, max.word = 50, scale = c(4, 0.5),random.color = T, colors = col)
 
 ```
+
 ##Visualization 4 - Identify a List of VIP Influencers from Paticipants and Followers
 ```{r}
 
